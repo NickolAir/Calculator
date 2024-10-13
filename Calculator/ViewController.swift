@@ -8,6 +8,12 @@
 import UIKit
 
 class ViewController: UIViewController {
+    
+    enum CalculationError: Error {
+        case lastSymbolDot
+        case lastSymbolOperator
+        case invalidExpression
+    }
 
     @IBAction func ACButtonAction(_ sender: Any) {
         animateButton(button: acOutlet)
@@ -31,7 +37,10 @@ class ViewController: UIViewController {
     
     @IBAction func percentAction(_ sender: Any) {
         animateButton(button: percentOutlet)
-        
+        if (inputFieldOutlet.text?.count != 0) {
+            addBrackets(field: inputFieldOutlet)
+            inputFieldOutlet.text?.append("*0.01")
+        }
     }
     
     @IBAction func oneAction(_ sender: Any) {
@@ -52,7 +61,9 @@ class ViewController: UIViewController {
     }
     @IBAction func divideAction(_ sender: Any) {
         animateButton(button: divideOutlet)
-        inputFieldOutlet.text?.append("/")
+        if (!isLastOperator(field: inputFieldOutlet) && inputFieldOutlet.text?.count != 0) {
+            inputFieldOutlet.text?.append("/")
+        }
     }
     @IBAction func eightAction(_ sender: Any) {
         animateButton(button: eightOutlet)
@@ -78,21 +89,51 @@ class ViewController: UIViewController {
     }
     @IBAction func minusAction(_ sender: Any) {
         animateButton(button: minusOutlet)
-        inputFieldOutlet.text?.append("-")
+        if (!isLastOperator(field: inputFieldOutlet)) {
+            inputFieldOutlet.text?.append("-")
+        }
     }
     @IBAction func multiplyAction(_ sender: Any) {
         animateButton(button: multiplyOutlet)
-        inputFieldOutlet.text?.append("*")
+        if (!isLastOperator(field: inputFieldOutlet) && inputFieldOutlet.text?.count != 0) {
+            inputFieldOutlet.text?.append("*")
+        }
     }
     @IBAction func equalAction(_ sender: Any) {
-    }
+        animateButton(button: equalOutlet)
+            
+            do {
+                try validateInput()
+                
+                if let inputField = inputFieldOutlet.text, !inputField.isEmpty {
+                    let expression = NSExpression(format: inputField)
+                    if let result = expression.expressionValue(with: nil, context: nil) as? Double {
+                        inputFieldOutlet.text = String(result)
+                    } else {
+                        throw CalculationError.invalidExpression
+                    }
+                }
+            } catch CalculationError.lastSymbolDot {
+                inputFieldOutlet.text = "'.' can't be last symbol"
+            } catch CalculationError.lastSymbolOperator {
+                inputFieldOutlet.text = "Operator can't be last"
+            } catch CalculationError.invalidExpression {
+                inputFieldOutlet.text = "Incorrect input"
+            } catch {
+                inputFieldOutlet.text = "Unknown error"
+            }
+        }
     @IBAction func plusAction(_ sender: Any) {
         animateButton(button: plusOutlet)
-        inputFieldOutlet.text?.append("+")
+        if (!isLastOperator(field: inputFieldOutlet)) {
+            inputFieldOutlet.text?.append("+")
+        }
     }
     @IBAction func commaAction(_ sender: Any) {
         animateButton(button: commaOutlet)
-        inputFieldOutlet.text?.append(".")
+        if (!isLastDot(field: inputFieldOutlet) && inputFieldOutlet.text?.count != 0) {
+            inputFieldOutlet.text?.append(".")
+        }
     }
     @IBAction func zeroAction(_ sender: Any) {
         animateButton(button: zeroOutlet)
@@ -146,6 +187,39 @@ class ViewController: UIViewController {
         field.text?.removeFirst()
         field.text?.removeLast()
     }
+    
+    func isLastOperator(field: UILabel) -> Bool{
+        if let inputField = field.text {
+            if(inputField.hasSuffix("+") || inputField.hasSuffix("-") || inputField.hasSuffix("*") || inputField.hasSuffix("/")) {
+                return true
+            } else {
+                return false
+            }
+        }
+        return false
+    }
+    
+    func isLastDot(field: UILabel) -> Bool{
+        if let inputField = field.text {
+            if(inputField.hasSuffix(".")) {
+                return true
+            } else {
+                return false
+            }
+        }
+        return false
+    }
+    
+    func validateInput() throws {
+        if isLastDot(field: inputFieldOutlet) {
+            throw CalculationError.lastSymbolDot
+        }
+        
+        if isLastOperator(field: inputFieldOutlet) {
+            throw CalculationError.lastSymbolOperator
+        }
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
